@@ -5,24 +5,15 @@ using UnityEngine.EventSystems;
 
 namespace ColdironTools.UI
 {
-    [RequireComponent(typeof(RectTransform))]
-    public class UIMouseRotate : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
+    public class UIMouseRotate : Selectable, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
     {
-        [SerializeField] private bool interactable = true;
-        [SerializeField, Tooltip("Image must be Read/Write, and the mesh type must be Full Rect")] private Image targetImage;
-
         [Header("Rotation Values")]
         [SerializeField] string axisName = "Mouse X";
         [SerializeField] float rotationSpeed = 5.0f;
         private bool isRotationDesired = false;
         private RectTransform rect;
 
-        [Header("Color Transition")]
-        private bool isMouseOver = false;
         private bool isMouseDown = false;
-        [SerializeField] private Color defaultColor = Color.white;
-        [SerializeField] private Color highlightedColor = new Color(0.9f, 0.9f, 0.9f);
-        [SerializeField] private Color selectedColor = new Color(0.8f, 0.8f, 0.8f);
 
         [Header("Rotation Events")]
         [SerializeField] bool useRotationEvents = true;
@@ -33,22 +24,18 @@ namespace ColdironTools.UI
         [SerializeField] private UnityEvent correctRotationEvent = new UnityEvent();
         [SerializeField] private UnityEvent incorrectRotationEvent = new UnityEvent();
 
-        private void OnValidate()
+        protected override void OnEnable()
         {
-            if (!targetImage)
-            {
-                targetImage = GetComponent<Image>();
-            }
-        }
+            base.OnEnable();
 
-        private void OnEnable()
-        {
+            Image targetImage = (Image)targetGraphic;
+
             if (targetImage && interactable && targetImage.sprite && targetImage.sprite.texture.isReadable)
             {
-                targetImage.color = defaultColor;
+                targetImage.color = colors.normalColor;
                 targetImage.alphaHitTestMinimumThreshold = 1.0f;
             }
-            else if(targetImage.sprite && !targetImage.sprite.texture.isReadable)
+            else if (targetImage.sprite && !targetImage.sprite.texture.isReadable)
             {
                 Debug.LogWarning(gameObject.name + "'s Target Image sprite is not set to Read/Write. Please adjust the import settings if you want to have image transparency support");
             }
@@ -56,27 +43,15 @@ namespace ColdironTools.UI
             rect = GetComponent<RectTransform>();
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public override void OnPointerDown(PointerEventData eventData)
         {
-            if(!isMouseDown) targetImage.color = highlightedColor;
-            isMouseOver = true;
-        }
-
-        public void OnPointerExit(PointerEventData eventData)
-        {
-            if(!isMouseDown) targetImage.color = defaultColor;
-            isMouseOver = false;
-        }
-
-        public void OnPointerDown(PointerEventData eventData)
-        {
-            targetImage.color = selectedColor;
+            base.OnPointerDown(eventData);
             isMouseDown = true;
         }
 
-        public void OnPointerUp(PointerEventData eventData)
+        public override void OnPointerUp(PointerEventData eventData)
         {
-            targetImage.color = isMouseOver ? highlightedColor : defaultColor;
+            base.OnPointerUp(eventData);
             isMouseDown = false;
         }
 
@@ -87,7 +62,7 @@ namespace ColdironTools.UI
                 float rotationAmount = Input.GetAxis(axisName) * rotationSpeed;
                 rect.Rotate(new Vector3(0.0f, 0.0f, rotationAmount));
 
-                if(!useRotationEvents) return;
+                if (!useRotationEvents) return;
 
                 if (rect.rotation.eulerAngles.z >= desiredMinRotation && rect.rotation.eulerAngles.z <= desiredMaxRotation && !isRotationDesired)
                 {

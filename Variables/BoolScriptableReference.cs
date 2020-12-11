@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace ColdironTools.Scriptables
 {
@@ -10,8 +11,11 @@ namespace ColdironTools.Scriptables
         [SerializeField] private bool useLocalValue = true;
         [SerializeField] bool localValue = false;
         [SerializeField] BoolScriptable referenceValue = null;
+
         private event EventHandler valueChanged;
         private event Action actionValueChanged;
+        private List<EventHandler> registeredEvents = new List<EventHandler>();
+        private List<Action> registeredActions = new List<Action>();
         #endregion
 
         #region Properties
@@ -60,9 +64,29 @@ namespace ColdironTools.Scriptables
                 OnValueChanged();
             }
         }
+
+        public BoolScriptable ReferenceValue
+        {
+            get => referenceValue;
+            set
+            {
+                referenceValue = value;
+                useLocalValue = false;
+            }
+        }
         #endregion
 
         #region Methods
+        public BoolScriptableReference()
+        {
+            Value = false;
+        }
+
+        public BoolScriptableReference(bool val)
+        {
+            Value = val;
+        }
+
         public static implicit operator bool(BoolScriptableReference scriptableReference)
         {
             return scriptableReference.Value;
@@ -70,6 +94,8 @@ namespace ColdironTools.Scriptables
 
         public void RegisterListener(EventHandler listener)
         {
+            if(registeredEvents.Contains(listener)) return;
+
             if (useLocalValue)
             {
                 valueChanged += listener;
@@ -78,10 +104,14 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.RegisterListener(listener);
             }
+
+            registeredEvents.Add(listener);
         }
 
         public void RegisterListener(Action listener)
         {
+            if(registeredActions.Contains(listener)) return;
+
             if (useLocalValue)
             {
                 actionValueChanged += listener;
@@ -90,6 +120,8 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.RegisterListener(listener);
             }
+
+            registeredActions.Add(listener);
         }
 
         public void UnregisterListener(EventHandler listener)
@@ -102,6 +134,8 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.UnregisterListener(listener);
             }
+
+            registeredEvents.Remove(listener);
         }
 
         public void UnregisterListener(Action listener)
@@ -114,6 +148,8 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.UnregisterListener(listener);
             }
+
+            registeredActions.Remove(listener);
         }
 
         public void OnValueChanged()

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace ColdironTools.Scriptables
 {
@@ -10,8 +11,11 @@ namespace ColdironTools.Scriptables
         [SerializeField] private bool useLocalValue = true;
         [SerializeField] Color localValue = new Color(1.0f, 1.0f, 1.0f);
         [SerializeField] ColorScriptable referenceValue = null;
+
         private event EventHandler valueChanged;
         private event Action actionValueChanged;
+        private List<EventHandler> registeredEvents = new List<EventHandler>();
+        private List<Action> registeredActions = new List<Action>();
         #endregion
 
         #region Properties
@@ -63,6 +67,15 @@ namespace ColdironTools.Scriptables
         #endregion
 
         #region Methods
+        public ColorScriptableReference()
+        {
+        }
+
+        public ColorScriptableReference(Color val)
+        {
+            Value = val;
+        }
+
         public static implicit operator Color(ColorScriptableReference scriptableReference)
         {
             return scriptableReference.Value;
@@ -70,6 +83,8 @@ namespace ColdironTools.Scriptables
 
         public void RegisterListener(EventHandler listener)
         {
+            if (registeredEvents.Contains(listener)) return;
+
             if (useLocalValue)
             {
                 valueChanged += listener;
@@ -78,10 +93,14 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.RegisterListener(listener);
             }
+
+            registeredEvents.Add(listener);
         }
 
         public void RegisterListener(Action listener)
         {
+            if (registeredActions.Contains(listener)) return;
+
             if (useLocalValue)
             {
                 actionValueChanged += listener;
@@ -90,6 +109,8 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.RegisterListener(listener);
             }
+
+            registeredActions.Add(listener);
         }
 
         public void UnregisterListener(EventHandler listener)
@@ -102,6 +123,8 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.UnregisterListener(listener);
             }
+
+            registeredEvents.Remove(listener);
         }
 
         public void UnregisterListener(Action listener)
@@ -114,12 +137,24 @@ namespace ColdironTools.Scriptables
             {
                 referenceValue.UnregisterListener(listener);
             }
+
+            registeredActions.Remove(listener);
         }
 
         public void OnValueChanged()
         {
             valueChanged?.Invoke(this, EventArgs.Empty);
             actionValueChanged?.Invoke();
+        }
+
+        public ColorScriptable ReferenceValue
+        {
+            get => referenceValue;
+            set
+            {
+                referenceValue = value;
+                useLocalValue = false;
+            }
         }
         #endregion
     }

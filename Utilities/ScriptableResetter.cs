@@ -13,47 +13,9 @@ public static class ScriptableResetter
 
     private static void LogPlayModeState(PlayModeStateChange state)
     {
-        if (state == PlayModeStateChange.EnteredPlayMode)
-        {
-            InitializeScriptables();
-        }
-
         if (state == PlayModeStateChange.ExitingPlayMode)
         {
             ResetScriptables();
-        }
-    }
-
-    public static void InitializeScriptables()
-    {
-        foreach (IntScriptable item in GetAllInstances<IntScriptable>())
-        {
-            item.Init();
-        }
-
-        foreach (FloatScriptable item in GetAllInstances<FloatScriptable>())
-        {
-            item.Init();
-        }
-
-        foreach (BoolScriptable item in GetAllInstances<BoolScriptable>())
-        {
-            item.Init();
-        }
-
-        foreach (StringScriptable item in GetAllInstances<StringScriptable>())
-        {
-            item.Init();
-        }
-
-        foreach (ColorScriptable item in GetAllInstances<ColorScriptable>())
-        {
-            item.Init();
-        }
-
-        foreach (DateScriptable item in GetAllInstances<DateScriptable>())
-        {
-            item.Init();
         }
     }
 

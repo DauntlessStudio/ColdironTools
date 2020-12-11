@@ -16,38 +16,50 @@ namespace ColdironTools.Events
     {
         #region Fields
         private List<GameEventListener> eventListeners = new List<GameEventListener>();
-        public event System.Action eventActions;
+        private event System.Action eventActions;
+        private event System.Action<GameEvent> eventActionsWithParam;
         #endregion
 
         #region Methods
-        public void Raise()
+        public virtual void Raise()
         {
             for(int i = eventListeners.Count -1; i >= 0; i--)
                 eventListeners[i].OnEventRaised(this);
 
             eventActions?.Invoke();
+            eventActionsWithParam?.Invoke(this);
         }
 
-        public void RegisterListener(GameEventListener listener)
+        public virtual void RegisterListener(GameEventListener listener)
         {
             if (!eventListeners.Contains(listener))
                 eventListeners.Add(listener);
         }
 
-        public void UnregisterListener(GameEventListener listener)
+        public virtual void UnregisterListener(GameEventListener listener)
         {
             if (eventListeners.Contains(listener))
                 eventListeners.Remove(listener);
         }
 
-        public void RegisterAction(System.Action action)
+        public virtual void RegisterAction(System.Action action)
         {
             eventActions += action;
         }
 
-        public void UnregisterAction(System.Action action)
+        public virtual void UnregisterAction(System.Action action)
         {
             eventActions -= action;
+        }
+
+        public virtual void RegisterAction(System.Action<GameEvent> action)
+        {
+            eventActionsWithParam += action;
+        }
+
+        public virtual void UnregisterAction(System.Action<GameEvent> action)
+        {
+            eventActionsWithParam -= action;
         }
         #endregion
     }

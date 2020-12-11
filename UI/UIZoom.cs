@@ -33,9 +33,9 @@ namespace ColdironTools.UI
             originialPosition = image.transform.localPosition;
         }
 
-        private void OnEnable()
+        private void OnDisable()
         {
-            image.transform.localPosition = originialPosition;
+            ZoomOut();
         }
 
         public void ZoomIn()
