@@ -2,7 +2,7 @@
 // Unite 2017 - Game Architecture with Scriptable Objects
 // 
 // Author: Ryan Hipple
-// Modified: Coldiron
+// Modified By: Caleb Coldiron
 // Date:   10/04/17
 // ----------------------------------------------------------------------------
 
@@ -11,6 +11,9 @@ using UnityEditor;
 
 namespace ColdironTools.Scriptables
 {
+    /// <summary>
+    /// A property drawer keeping scriptable references on one line and making thing clear at a glance for designers.
+    /// </summary>
     [CustomPropertyDrawer(typeof(FloatScriptableReference))]
     public class FloatScriptableReferenceDrawer : PropertyDrawer
     {

@@ -1,57 +1,103 @@
-﻿//Original version of the ConditionalEnumHideAttribute created by Brecht Lecluyse (www.brechtos.com)
-//Modified by: Coldiron
+﻿// ------------------------------
+// Coldiron Tools
+// Original version of the ConditionalEnumHideAttribute created by Brecht Lecluyse (www.brechtos.com)
+// Modified By: Caleb Coldiron
+// Version: 1.0, 2021
+// ------------------------------
+
 using UnityEngine;
 using UnityEditor;
- 
-[CustomPropertyDrawer(typeof(ConditionalHideAttribute))]
-public class ConditionalHidePropertyDrawer : PropertyDrawer
+
+namespace ColdironTools.EditorExtensions
 {
-    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    /// <summary>
+    /// The property drawer responsible for Conditional Hide Attribue behaviour.
+    /// </summary>
+    [CustomPropertyDrawer(typeof(ConditionalHideAttribute))]
+    public class ConditionalHidePropertyDrawer : PropertyDrawer
     {
-        ConditionalHideAttribute condHAtt = (ConditionalHideAttribute)attribute;
-        bool enabled = GetConditionalHideAttributeResult(condHAtt, property);
+        PropertyDrawer propertyDrawer = null;
 
-        bool wasEnabled = GUI.enabled;
-        GUI.enabled = enabled;
-        if (!condHAtt.HideInInspector || enabled)
+        /// <summary>
+        /// Sets up the GUI for the editor.
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="property"></param>
+        /// <param name="label"></param>
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            EditorGUI.PropertyField(position, property, label, true);
+            ConditionalHideAttribute condHAtt = (ConditionalHideAttribute)attribute;
+            bool enabled = GetConditionalHideAttributeResult(condHAtt, property);
+
+            bool wasEnabled = GUI.enabled;
+            GUI.enabled = enabled;
+
+            if (condHAtt.shouldGrayOut || enabled)
+            {
+                if(propertyDrawer == null) propertyDrawer = PropertyDrawerHelper.GetPropertyDrawer(fieldInfo);
+
+                if (propertyDrawer != null)
+                {
+                    propertyDrawer.OnGUI(position, property, label);
+                }
+                else
+                    EditorGUI.PropertyField(position, property, label, true);
+            }
+
+            GUI.enabled = wasEnabled;
         }
 
-        GUI.enabled = wasEnabled;
-    }
-
-    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
-    {
-        ConditionalHideAttribute condHAtt = (ConditionalHideAttribute)attribute;
-        bool enabled = GetConditionalHideAttributeResult(condHAtt, property);
-
-        if (!condHAtt.HideInInspector || enabled)
+        /// <summary>
+        /// Sets the property height for the editor.
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="label"></param>
+        /// <returns></returns>
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return EditorGUI.GetPropertyHeight(property, label);
-        }
-        else
-        {
-            return -EditorGUIUtility.standardVerticalSpacing;
-        }
-    }
+            ConditionalHideAttribute condHAtt = (ConditionalHideAttribute)attribute;
+            bool enabled = GetConditionalHideAttributeResult(condHAtt, property);
 
-    private bool GetConditionalHideAttributeResult(ConditionalHideAttribute condHAtt, SerializedProperty property)
-    {
-        bool enabled = true;
-        string propertyPath = property.propertyPath; //returns the property path of the property we want to apply the attribute to
-        string conditionPath = propertyPath.Replace(property.name, condHAtt.ConditionalSourceField); //changes the path to the conditionalsource property path
-        SerializedProperty sourcePropertyValue = property.serializedObject.FindProperty(conditionPath);
+            if (condHAtt.shouldGrayOut || enabled)
+            {
+                if (propertyDrawer == null) propertyDrawer = PropertyDrawerHelper.GetPropertyDrawer(fieldInfo);
 
-        if (sourcePropertyValue != null)
-        {
-            enabled = sourcePropertyValue.boolValue;
-        }
-        else
-        {
-            Debug.LogWarning("Attempting to use a ConditionalHideAttribute but no matching SourcePropertyValue found in object: " + condHAtt.ConditionalSourceField);
+                if (propertyDrawer != null)
+                {
+                    return propertyDrawer.GetPropertyHeight(property, label);
+                }
+
+                return EditorGUI.GetPropertyHeight(property, label);
+            }
+            else
+            {
+                return -EditorGUIUtility.standardVerticalSpacing;
+            }
         }
 
-        return enabled;
+        /// <summary>
+        /// Gets the value of whether to hide or show the property.
+        /// </summary>
+        /// <param name="condHAtt"></param>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        private bool GetConditionalHideAttributeResult(ConditionalHideAttribute condHAtt, SerializedProperty property)
+        {
+            bool enabled = true;
+            string propertyPath = property.propertyPath; //returns the property path of the property we want to apply the attribute to
+            string conditionPath = propertyPath.Replace(property.name, condHAtt.conditionalSourceField); //changes the path to the conditionalsource property path
+            SerializedProperty sourcePropertyValue = property.serializedObject.FindProperty(conditionPath);
+
+            if (sourcePropertyValue != null)
+            {
+                enabled = condHAtt.shouldUseEnum ? condHAtt.enumVal != sourcePropertyValue.intValue : sourcePropertyValue.boolValue != condHAtt.hideValue;
+            }
+            else
+            {
+                Debug.LogWarning("Attempting to use a ConditionalHideAttribute but no matching Source Property Value found in object: " + condHAtt.conditionalSourceField);
+            }
+
+            return enabled;
+        }
     }
 }

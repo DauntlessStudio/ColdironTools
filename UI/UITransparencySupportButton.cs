@@ -1,35 +1,28 @@
-﻿using UnityEngine;
+﻿// ------------------------------
+// Coldiron Tools
+// Author: Caleb Coldiron
+// Version: 1.0, 2021
+// ------------------------------
+
 using UnityEngine.UI;
-using UnityEngine.Events;
-using UnityEngine.EventSystems;
 
 namespace ColdironTools.UI
 {
-    public class UITransparencySupportButton : Selectable, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerClickHandler, IPointerUpHandler
+    /// <summary>
+    /// Simple class to allow buttons to only work when clicking on opaque pixels.
+    /// </summary>
+    public class UITransparencySupportButton : Button
     {
-        [Header("")]
-        [SerializeField] private UnityEvent OnClick = new UnityEvent();
-
+        #region Methods
+        /// <summary>
+        /// Adds the alpha hit test call to OnEnable.
+        /// </summary>
         protected override void OnEnable()
         {
             base.OnEnable();
 
-            Image targetImage = (Image)targetGraphic;
-
-            if (targetImage && interactable && targetImage.sprite && targetImage.sprite.texture.isReadable)
-            {
-                targetImage.color = colors.normalColor;
-                targetImage.alphaHitTestMinimumThreshold = 1.0f;
-            }
-            else if (targetImage.sprite && !targetImage.sprite.texture.isReadable)
-            {
-                Debug.LogWarning(gameObject.name + "'s Target Image sprite is not set to Read/Write. Please adjust the import settings if you want to have image transparency support");
-            }
+            AlphaHitTest.AttemptTransparencyHitTest(gameObject);
         }
-
-        public void OnPointerClick(PointerEventData eventData)
-        {
-            OnClick.Invoke();
-        }
+        #endregion
     }
 }

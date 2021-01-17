@@ -1,8 +1,17 @@
-﻿using UnityEngine;
+﻿// ------------------------------
+// Coldiron Tools
+// Author: Caleb Coldiron
+// Version: 1.0, 2021
+// ------------------------------
+
+using UnityEngine;
 using UnityEditor;
 
 namespace ColdironTools.Scriptables
 {
+    /// <summary>
+    /// A property drawer keeping scriptable references on one line and making thing clear at a glance for designers.
+    /// </summary>
     [CustomPropertyDrawer(typeof(BoolScriptableReference))]
     public class BoolScriptableReferenceDrawer : PropertyDrawer
     {

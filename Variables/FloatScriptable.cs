@@ -1,17 +1,42 @@
-﻿using UnityEngine;
+﻿// ------------------------------
+// Coldiron Tools
+// Author: Caleb Coldiron
+// Version: 1.0, 2021
+// ------------------------------
+
+using UnityEngine;
 using System.Collections.Generic;
+using ColdironTools.EditorExtensions;
 
 namespace ColdironTools.Scriptables
 {
-    [CreateAssetMenu(menuName = "Scriptable Variables/Float")]
+    /// <summary>
+    /// Scriptable object containing a float value.
+    /// </summary>
+    [CreateAssetMenu(menuName = "Scriptable Variables/Float"), System.Serializable]
     public class FloatScriptable : ScriptableObject
     {
         #region Fields
+        [Tooltip("A note by the designer describing the purpose of this scriptable. Not used in code.")]
         [SerializeField, Multiline] private string designerDescription = "";
 
+        [Tooltip("Should the value reset when exiting play mode?")]
         [SerializeField] private bool shouldReset = true;
+
+        [Tooltip("Current value of the scriptable.")]
         [SerializeField] private float value = 0.0f;
         private float defaultValue = 0.0f;
+
+        [Tooltip("Should put a minimum and maximum on this value.")]
+        [SerializeField] private bool useMinMax = false;
+
+        [ConditionalHide("useMinMax")]
+        [Tooltip("The lowest the value can be.")]
+        [SerializeField] private FloatScriptableReference minValue = new FloatScriptableReference();
+
+        [ConditionalHide("useMinMax")]
+        [Tooltip("The highest the value can be.")]
+        [SerializeField] private FloatScriptableReference maxValue = new FloatScriptableReference(1.0f);
 
         private event System.EventHandler valueChanged;
         private event System.Action actionValueChanged;
@@ -20,6 +45,10 @@ namespace ColdironTools.Scriptables
         #endregion
 
         #region Properties
+        /// <summary>
+        /// The current value of this scriptable.
+        /// Calls the registered listeners when changed.
+        /// </summary>
         public float Value
         {
             get
@@ -28,15 +57,21 @@ namespace ColdironTools.Scriptables
             }
             set
             {
-                this.value = value;
+                this.value = Mathf.Clamp(value, minValue, maxValue);
                 OnValueChanged();
             }
         }
 
+        /// <summary>
+        /// Public accessor for the description. Exists mainly to remove the unused variable warning in the editor.
+        /// </summary>
         public string DesignerDescription { get => designerDescription;}
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Calls OnValueChanged even when directly modifying the field in the editor.
+        /// </summary>
         private void OnValidate()
         {
             OnValueChanged();
@@ -45,58 +80,60 @@ namespace ColdironTools.Scriptables
             {
                 Init();
             }
+
+            if (useMinMax)
+            {
+                value = Mathf.Clamp(value, minValue, maxValue);
+            }
         }
 
+        /// <summary>
+        /// Prevents this object from unloading when new scenes are loaded.
+        /// </summary>
         private void OnEnable()
         {
             hideFlags = HideFlags.DontUnloadUnusedAsset;
         }
 
+        /// <summary>
+        /// Sets default value to whatever a designer inputs in the inspector.
+        /// </summary>
         public void Init()
         {
             if (shouldReset) defaultValue = Value;
         }
 
+        /// <summary>
+        /// Resets to the default value. Called automatically by ScriptableResetter when exiting play mode.
+        /// </summary>
         public void Reset()
         {
-            if (shouldReset) Value = defaultValue;
+            if (shouldReset) value = defaultValue;
         }
 
+        /// <summary>
+        /// Adds the parameter to the scriptable's value. Use negative numbers to subtract.
+        /// </summary>
+        /// <param name="val">The value to increment by</param>
         public void ModifyValue(float val)
         {
             Value += val;
         }
 
-        public void ModifyValue(FloatScriptable val)
-        {
-            Value += val;
-        }
-
-        public void IncrementToLimitWithCycle(int maxValue)
-        {
-            Value++;
-
-            if (value > maxValue)
-            {
-                Value = 0;
-            }
-        }
-
-        public void IncrementToLimit(int maxValue)
-        {
-            Value++;
-
-            if (Value > maxValue)
-            {
-                Value = maxValue;
-            }
-        }
-
+        /// <summary>
+        /// Allows the scriptable to be used as a float in operators.
+        /// </summary>
+        /// <param name="floatScriptable"></param>
         public static implicit operator float(FloatScriptable floatScriptable)
         {
             return floatScriptable.Value;
         }
 
+        /// <summary>
+        /// Registers an event as a listener. Whenever Value is changed, all registered listeners will be called.
+        /// Prevents duplicates from being registered.
+        /// </summary>
+        /// <param name="listener">The event to be registered.</param>
         public void RegisterListener(System.EventHandler listener)
         {
             if (registeredEvents.Contains(listener)) return;
@@ -106,6 +143,11 @@ namespace ColdironTools.Scriptables
             registeredEvents.Add(listener);
         }
 
+        /// <summary>
+        /// Registers an action as a listener. Whenever Value is changed, all registered listeners will be called.
+        /// Prevents duplicates from being registered.
+        /// </summary>
+        /// <param name="listener">The action to be registered</param>
         public void RegisterListener(System.Action listener)
         {
             if (registeredActions.Contains(listener)) return;
@@ -115,6 +157,11 @@ namespace ColdironTools.Scriptables
             registeredActions.Add(listener);
         }
 
+        /// <summary>
+        /// Unregisters an event as a listener. 
+        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
+        /// </summary>
+        /// <param name="listener">The event to unregister</param>
         public void UnregisterListener(System.EventHandler listener)
         {
             valueChanged -= listener;
@@ -122,6 +169,11 @@ namespace ColdironTools.Scriptables
             registeredEvents.Remove(listener);
         }
 
+        /// <summary>
+        /// Unregisters an event as a listener. 
+        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
+        /// </summary>
+        /// <param name="listener">The action to unregister</param>
         public void UnregisterListener(System.Action listener)
         {
             actionValueChanged -= listener;
@@ -129,6 +181,9 @@ namespace ColdironTools.Scriptables
             registeredActions.Remove(listener);
         }
 
+        /// <summary>
+        /// Called any time the Value changes. Invokes all of the listeners.
+        /// </summary>
         protected virtual void OnValueChanged()
         {
             valueChanged?.Invoke(this, System.EventArgs.Empty);

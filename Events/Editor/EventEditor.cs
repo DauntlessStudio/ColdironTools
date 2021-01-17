@@ -2,7 +2,7 @@
 // Unite 2017 - Game Architecture with Scriptable Objects
 // 
 // Author: Ryan Hipple
-// Modified: Coldiron
+// Modified: Caleb Coldiron
 // Date:   10/04/17
 // ----------------------------------------------------------------------------
 
@@ -11,9 +11,15 @@ using UnityEngine;
 
 namespace ColdironTools.Events
 {
+    /// <summary>
+    /// Custom editor for Game Events.
+    /// </summary>
     [CustomEditor(typeof(GameEvent))]
     public class EventEditor : Editor
     {
+        /// <summary>
+        /// Adds a button to the Inspector Panel when the editor is in Play Mode.
+        /// </summary>
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();

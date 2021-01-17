@@ -1,15 +1,30 @@
-﻿using UnityEngine;
+﻿// ------------------------------
+// Coldiron Tools
+// Author: Caleb Coldiron
+// Version: 1.0, 2021
+// ------------------------------
+
+using UnityEngine;
 using System;
 using System.Collections.Generic;
 
 namespace ColdironTools.Scriptables
 {
+    /// <summary>
+    /// Contains both a local value and a scriptable reference.
+    /// Using a scriptable reference instead of a standard scriptable extends greater freedom to designers.
+    /// </summary>
     [Serializable]
     public class FloatScriptableReference
     {
         #region Fields
+        [Tooltip("Should the local value be used?")]
         [SerializeField] private bool useLocalValue = true;
+
+        [Tooltip("The current local value.")]
         [SerializeField] float localValue = 0.0f;
+
+        [Tooltip("The references bool scriptable value.")]
         [SerializeField] FloatScriptable referenceValue = null;
 
         private event EventHandler valueChanged;
@@ -19,6 +34,10 @@ namespace ColdironTools.Scriptables
         #endregion
 
         #region Properties
+        /// <summary>
+        /// Returns 0.0f if no reference value is included and logs an error to the console.
+        /// Otherwise returns the value for the the scriptable.
+        /// </summary>
         private float nullProtectedReferenceValue
         {
             get
@@ -43,9 +62,12 @@ namespace ColdironTools.Scriptables
             }
         }
 
+        /// <summary>
+        /// Gets either the local value or the protected reference value based on the useLocalValue condition.
+        /// Sets these values as well, along with invoking all listeners.
+        /// </summary>
         public float Value
         {
-            //gets and sets either the local value or the scriptable's value based on useLocalValue
             get
             {
                 return useLocalValue ? localValue : nullProtectedReferenceValue;
@@ -64,34 +86,40 @@ namespace ColdironTools.Scriptables
                 OnValueChanged(this, EventArgs.Empty);
             }
         }
-
-        public FloatScriptable ReferenceValue
-        {
-            get => referenceValue;
-            set
-            {
-                referenceValue = value;
-                useLocalValue = false;
-            }
-        }
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Dafault constructor.
+        /// </summary>
         public FloatScriptableReference()
         {
             Value = 0;
         }
 
+        /// <summary>
+        /// Constructor with param.
+        /// </summary>
+        /// <param name="val"></param>
         public FloatScriptableReference(float val)
         {
             Value = val;
         }
 
+        /// <summary>
+        /// Allows the scriptable to be used as a float in operators.
+        /// </summary>
+        /// <param name="scriptableReference"></param>
         public static implicit operator float(FloatScriptableReference scriptableReference)
         {
             return scriptableReference.Value;
         }
 
+        /// <summary>
+        /// Registers an event as a listener. Whenever Value is changed, all registered listeners will be called.
+        /// Prevents duplicates from being registered.
+        /// </summary>
+        /// <param name="listener">The event to be registered.</param>
         public void RegisterListener(EventHandler listener)
         {
             if (registeredEvents.Contains(listener)) return;
@@ -108,6 +136,11 @@ namespace ColdironTools.Scriptables
             registeredEvents.Add(listener);
         }
 
+        /// <summary>
+        /// Registers an action as a listener. Whenever Value is changed, all registered listeners will be called.
+        /// Prevents duplicates from being registered.
+        /// </summary>
+        /// <param name="listener">The action to be registered</param>
         public void RegisterListener(Action listener)
         {
             if (registeredActions.Contains(listener)) return;
@@ -124,6 +157,11 @@ namespace ColdironTools.Scriptables
             registeredActions.Add(listener);
         }
 
+        /// <summary>
+        /// Unregisters an event as a listener. 
+        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
+        /// </summary>
+        /// <param name="listener">The event to unregister</param>
         public void UnregisterListener(EventHandler listener)
         {
             if (useLocalValue)
@@ -138,6 +176,11 @@ namespace ColdironTools.Scriptables
             registeredEvents.Remove(listener);
         }
 
+        /// <summary>
+        /// Unregisters an event as a listener. 
+        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
+        /// </summary>
+        /// <param name="listener">The action to unregister</param>
         public void UnregisterListener(Action listener)
         {
             if (useLocalValue)
@@ -152,6 +195,9 @@ namespace ColdironTools.Scriptables
             registeredActions.Remove(listener);
         }
 
+        /// <summary>
+        /// Called any time the Value changes. Invokes all of the listeners.
+        /// </summary>
         private void OnValueChanged(object sender, EventArgs e)
         {
             valueChanged?.Invoke(this, EventArgs.Empty);

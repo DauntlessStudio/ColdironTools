@@ -1,80 +1,75 @@
-﻿using UnityEngine;
+﻿// ------------------------------
+// Coldiron Tools
+// Author: Caleb Coldiron
+// Version: 1.0, 2021
+// ------------------------------
+
+using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
 namespace ColdironTools.UI
 {
+    /// <summary>
+    /// Rotates the UI Object based on an input axis.
+    /// </summary>
     public class UIMouseRotate : Selectable, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
     {
-        [Header("Rotation Values")]
+        #region Fields
+        [Tooltip("The axis that controls rotation.")]
         [SerializeField] string axisName = "Mouse X";
+
+        [Tooltip("The speed with which the object should rotate.")]
         [SerializeField] float rotationSpeed = 5.0f;
-        private bool isRotationDesired = false;
-        private RectTransform rect;
 
-        private bool isMouseDown = false;
+        private RectTransform rectTransform;
+        private bool isPointerDown = false;
+        #endregion
 
-        [Header("Rotation Events")]
-        [SerializeField] bool useRotationEvents = true;
-        [SerializeField, ConditionalHide("useRotationEvents")] float desiredMinRotation = 0.0f;
-        [SerializeField, ConditionalHide("useRotationEvents")] float desiredMaxRotation = 0.0f;
-
-        [Header("")]
-        [SerializeField] private UnityEvent correctRotationEvent = new UnityEvent();
-        [SerializeField] private UnityEvent incorrectRotationEvent = new UnityEvent();
-
+        #region Methods
+        /// <summary>
+        /// Assigns the rectTransform and performs the alpha hit test.
+        /// </summary>
         protected override void OnEnable()
         {
             base.OnEnable();
 
-            Image targetImage = (Image)targetGraphic;
+            rectTransform = GetComponent<RectTransform>();
 
-            if (targetImage && interactable && targetImage.sprite && targetImage.sprite.texture.isReadable)
-            {
-                targetImage.color = colors.normalColor;
-                targetImage.alphaHitTestMinimumThreshold = 1.0f;
-            }
-            else if (targetImage.sprite && !targetImage.sprite.texture.isReadable)
-            {
-                Debug.LogWarning(gameObject.name + "'s Target Image sprite is not set to Read/Write. Please adjust the import settings if you want to have image transparency support");
-            }
-
-            rect = GetComponent<RectTransform>();
+            AlphaHitTest.AttemptTransparencyHitTest(gameObject);
         }
 
+        /// <summary>
+        /// Sets isPointerDown to true.
+        /// </summary>
+        /// <param name="eventData">Data about the pointer</param>
         public override void OnPointerDown(PointerEventData eventData)
         {
             base.OnPointerDown(eventData);
-            isMouseDown = true;
+            isPointerDown = true;
         }
 
+        /// <summary>
+        /// Sets isPointerDown to false.
+        /// </summary>
+        /// <param name="eventData">Data about the pointer</param>
         public override void OnPointerUp(PointerEventData eventData)
         {
             base.OnPointerUp(eventData);
-            isMouseDown = false;
+            isPointerDown = false;
         }
 
-        private void Update()
+        /// <summary>
+        /// Rotates the GameObject.
+        /// </summary>
+        protected virtual void LateUpdate()
         {
-            if (isMouseDown)
+            if (isPointerDown)
             {
                 float rotationAmount = Input.GetAxis(axisName) * rotationSpeed;
-                rect.Rotate(new Vector3(0.0f, 0.0f, rotationAmount));
-
-                if (!useRotationEvents) return;
-
-                if (rect.rotation.eulerAngles.z >= desiredMinRotation && rect.rotation.eulerAngles.z <= desiredMaxRotation && !isRotationDesired)
-                {
-                    isRotationDesired = true;
-                    correctRotationEvent.Invoke();
-                }
-                else if (isRotationDesired && !(rect.rotation.eulerAngles.z >= desiredMinRotation && rect.rotation.eulerAngles.z <= desiredMaxRotation))
-                {
-                    isRotationDesired = false;
-                    incorrectRotationEvent.Invoke();
-                }
+                rectTransform.Rotate(new Vector3(0.0f, 0.0f, rotationAmount));
             }
         }
+        #endregion
     }
 }

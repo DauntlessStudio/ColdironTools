@@ -12,6 +12,9 @@ using System.Collections.Generic;
 
 namespace ColdironTools.Events
 {
+    /// <summary>
+    /// A Unity Event and the Game Event that should Invoke it.
+    /// </summary>
     [System.Serializable]
     public struct PairedEventListener
     {
@@ -26,6 +29,11 @@ namespace ColdironTools.Events
         #endregion
 
         #region Methods
+
+        /// <summary>
+        /// Called when the Game Object becomes active.
+        /// Registers all of the PairedEventListeners.
+        /// </summary>
         protected virtual void OnEnable()
         {
             foreach (PairedEventListener pairedListener in Events)
@@ -34,6 +42,10 @@ namespace ColdironTools.Events
             }
         }
 
+        /// <summary>
+        /// Called when the Game Object becomes inactive. Unregisters all of the PairedListeners.
+        /// Prevents null references.
+        /// </summary>
         protected virtual void OnDisable()
         {
             foreach (PairedEventListener pairedListener in Events)
@@ -42,6 +54,11 @@ namespace ColdironTools.Events
             }
         }
 
+        /// <summary>
+        /// Called when a registered GameEvent is raised.
+        /// Invokes the UnityEvent that is paired with that GameEvent.
+        /// </summary>
+        /// <param name="gameEvent">The GameEvent that was raised</param>
         public virtual void OnEventRaised(GameEvent gameEvent)
         {
             foreach (PairedEventListener listenEvent in Events)
@@ -53,6 +70,10 @@ namespace ColdironTools.Events
             }
         }
 
+        /// <summary>
+        /// Invokes a UnityEvent by index.
+        /// </summary>
+        /// <param name="index">The index of the PairedEventListener to invoke</param>
         public virtual void RaiseEventByIndex(int index)
         {
             if (Events.Count >= index+1)

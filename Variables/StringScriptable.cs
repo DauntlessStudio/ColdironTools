@@ -1,4 +1,10 @@
-﻿using UnityEngine;
+﻿// ------------------------------
+// Coldiron Tools
+// Author: Caleb Coldiron
+// Version: 1.0, 2021
+// ------------------------------
+
+using UnityEngine;
 using System.Collections.Generic;
 
 namespace ColdironTools.Scriptables
@@ -7,10 +13,15 @@ namespace ColdironTools.Scriptables
     public class StringScriptable : ScriptableObject
     {
         #region Fields
+        [Tooltip("A note by the designer describing the purpose of this scriptable. Not used in code.")]
         [SerializeField, Multiline] private string designerDescription = "";
 
+        [Tooltip("Should the value reset when exiting play mode?")]
         [SerializeField] private bool shouldReset = true;
+
+        [Tooltip("Current value of the scriptable.")]
         [SerializeField] private string value = "";
+
         private string defaultValue = "";
 
         private event System.EventHandler valueChanged;
@@ -20,6 +31,10 @@ namespace ColdironTools.Scriptables
         #endregion
 
         #region Properties
+        /// <summary>
+        /// The current value of this scriptable.
+        /// Calls the registered listeners when changed.
+        /// </summary>
         public string Value
         {
             get
@@ -33,10 +48,16 @@ namespace ColdironTools.Scriptables
             }
         }
 
+        /// <summary>
+        /// Public accessor for the description. Exists mainly to remove the unused variable warning in the editor.
+        /// </summary>
         public string DesignerDescription { get => designerDescription;}
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Calls OnValueChanged even when directly modifying the field in the editor.
+        /// </summary>
         private void OnValidate()
         {
             OnValueChanged();
@@ -47,47 +68,53 @@ namespace ColdironTools.Scriptables
             }
         }
 
+        /// <summary>
+        /// Prevents this object from unloading when new scenes are loaded.
+        /// </summary>
         private void OnEnable()
         {
             hideFlags = HideFlags.DontUnloadUnusedAsset;
         }
 
+        /// <summary>
+        /// Sets default value to whatever a designer inputs in the inspector.
+        /// </summary>
         public void Init()
         {
             if(shouldReset) defaultValue = Value;
         }
 
+        /// <summary>
+        /// Resets to the default value. Called automatically by ScriptableResetter when exiting play mode.
+        /// </summary>
         public void Reset()
         {
-            if(shouldReset) Value = defaultValue;
+            if(shouldReset) value = defaultValue;
         }
 
-        public void AddString(string val)
+        /// <summary>
+        /// Adds to the end of the current string.
+        /// </summary>
+        /// <param name="val">The string to be appended</param>
+        public string Append(string val)
         {
-            Value = Value + val;
+            return Value = Value + val;
         }
 
-        public void AddString(StringScriptableReference val)
-        {
-            Value = Value + val;
-        }
-
-        public void RemoveCharacters(int characters)
-        {
-            for (int i = 0; i < characters; i++)
-            {
-                if (Value.Length > 0)
-                {
-                    Value = Value.Remove(Value.Length - 1);
-                }
-            }
-        }
-
+        /// <summary>
+        /// Allows the scriptable to be used as a string in operators.
+        /// </summary>
+        /// <param name="stringScriptable"></param>
         public static implicit operator string(StringScriptable stringScriptable)
         {
             return stringScriptable.Value;
         }
 
+        /// <summary>
+        /// Registers an event as a listener. Whenever Value is changed, all registered listeners will be called.
+        /// Prevents duplicates from being registered.
+        /// </summary>
+        /// <param name="listener">The event to be registered.</param>
         public void RegisterListener(System.EventHandler listener)
         {
             if (registeredEvents.Contains(listener)) return;
@@ -97,6 +124,11 @@ namespace ColdironTools.Scriptables
             registeredEvents.Add(listener);
         }
 
+        /// <summary>
+        /// Registers an action as a listener. Whenever Value is changed, all registered listeners will be called.
+        /// Prevents duplicates from being registered.
+        /// </summary>
+        /// <param name="listener">The action to be registered</param>
         public void RegisterListener(System.Action listener)
         {
             if (registeredActions.Contains(listener)) return;
@@ -106,6 +138,11 @@ namespace ColdironTools.Scriptables
             registeredActions.Add(listener);
         }
 
+        /// <summary>
+        /// Unregisters an event as a listener. 
+        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
+        /// </summary>
+        /// <param name="listener">The event to unregister</param>
         public void UnregisterListener(System.EventHandler listener)
         {
             valueChanged -= listener;
@@ -113,6 +150,11 @@ namespace ColdironTools.Scriptables
             registeredEvents.Remove(listener);
         }
 
+        /// <summary>
+        /// Unregisters an event as a listener. 
+        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
+        /// </summary>
+        /// <param name="listener">The action to unregister</param>
         public void UnregisterListener(System.Action listener)
         {
             actionValueChanged -= listener;
@@ -120,6 +162,9 @@ namespace ColdironTools.Scriptables
             registeredActions.Remove(listener);
         }
 
+        /// <summary>
+        /// Called any time the Value changes. Invokes all of the listeners.
+        /// </summary>
         protected virtual void OnValueChanged()
         {
             valueChanged?.Invoke(this, System.EventArgs.Empty);
