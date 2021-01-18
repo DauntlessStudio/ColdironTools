@@ -43,7 +43,7 @@ namespace ColdironTools.Utilities
             {
                 return list[list.IndexOf(currentElement) + 1];
             }
-            else return default(T);
+            else return list[list.Count -1];
         }
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace ColdironTools.Utilities
             {
                 return list[list.IndexOf(currentElement) - 1];
             }
-            else return default(T);
+            else return list[0];
         }
         #endregion
     }
