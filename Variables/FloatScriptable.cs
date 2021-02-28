@@ -5,7 +5,6 @@
 // ------------------------------
 
 using UnityEngine;
-using System.Collections.Generic;
 using ColdironTools.EditorExtensions;
 
 namespace ColdironTools.Scriptables
@@ -14,19 +13,9 @@ namespace ColdironTools.Scriptables
     /// Scriptable object containing a float value.
     /// </summary>
     [CreateAssetMenu(menuName = "Scriptable Variables/Float"), System.Serializable]
-    public class FloatScriptable : ScriptableObject
+    public class FloatScriptable : VarScriptable<float>
     {
         #region Fields
-        [Tooltip("A note by the designer describing the purpose of this scriptable. Not used in code.")]
-        [SerializeField, Multiline] private string designerDescription = "";
-
-        [Tooltip("Should the value reset when exiting play mode?")]
-        [SerializeField] private bool shouldReset = true;
-
-        [Tooltip("Current value of the scriptable.")]
-        [SerializeField] private float value = 0.0f;
-        private float defaultValue = 0.0f;
-
         [Tooltip("Should put a minimum and maximum on this value.")]
         [SerializeField] private bool useMinMax = false;
 
@@ -37,11 +26,6 @@ namespace ColdironTools.Scriptables
         [ConditionalHide("useMinMax")]
         [Tooltip("The highest the value can be.")]
         [SerializeField] private FloatScriptableReference maxValue = new FloatScriptableReference(1.0f);
-
-        private event System.EventHandler valueChanged;
-        private event System.Action actionValueChanged;
-        private List<System.EventHandler> registeredEvents = new List<System.EventHandler>();
-        private List<System.Action> registeredActions = new List<System.Action>();
         #endregion
 
         #region Properties
@@ -49,7 +33,7 @@ namespace ColdironTools.Scriptables
         /// The current value of this scriptable.
         /// Calls the registered listeners when changed.
         /// </summary>
-        public float Value
+        public override float Value
         {
             get
             {
@@ -61,18 +45,13 @@ namespace ColdironTools.Scriptables
                 OnValueChanged();
             }
         }
-
-        /// <summary>
-        /// Public accessor for the description. Exists mainly to remove the unused variable warning in the editor.
-        /// </summary>
-        public string DesignerDescription { get => designerDescription;}
         #endregion
 
         #region Methods
         /// <summary>
         /// Calls OnValueChanged even when directly modifying the field in the editor.
         /// </summary>
-        private void OnValidate()
+        protected override void OnValidate()
         {
             OnValueChanged();
 
@@ -88,106 +67,12 @@ namespace ColdironTools.Scriptables
         }
 
         /// <summary>
-        /// Prevents this object from unloading when new scenes are loaded.
-        /// </summary>
-        private void OnEnable()
-        {
-            hideFlags = HideFlags.DontUnloadUnusedAsset;
-        }
-
-        /// <summary>
-        /// Sets default value to whatever a designer inputs in the inspector.
-        /// </summary>
-        public void Init()
-        {
-            if (shouldReset) defaultValue = Value;
-        }
-
-        /// <summary>
-        /// Resets to the default value. Called automatically by ScriptableResetter when exiting play mode.
-        /// </summary>
-        public void Reset()
-        {
-            if (shouldReset) value = defaultValue;
-        }
-
-        /// <summary>
         /// Adds the parameter to the scriptable's value. Use negative numbers to subtract.
         /// </summary>
         /// <param name="val">The value to increment by</param>
         public void ModifyValue(float val)
         {
             Value += val;
-        }
-
-        /// <summary>
-        /// Allows the scriptable to be used as a float in operators.
-        /// </summary>
-        /// <param name="floatScriptable"></param>
-        public static implicit operator float(FloatScriptable floatScriptable)
-        {
-            return floatScriptable.Value;
-        }
-
-        /// <summary>
-        /// Registers an event as a listener. Whenever Value is changed, all registered listeners will be called.
-        /// Prevents duplicates from being registered.
-        /// </summary>
-        /// <param name="listener">The event to be registered.</param>
-        public void RegisterListener(System.EventHandler listener)
-        {
-            if (registeredEvents.Contains(listener)) return;
-
-            valueChanged += listener;
-
-            registeredEvents.Add(listener);
-        }
-
-        /// <summary>
-        /// Registers an action as a listener. Whenever Value is changed, all registered listeners will be called.
-        /// Prevents duplicates from being registered.
-        /// </summary>
-        /// <param name="listener">The action to be registered</param>
-        public void RegisterListener(System.Action listener)
-        {
-            if (registeredActions.Contains(listener)) return;
-
-            actionValueChanged += listener;
-
-            registeredActions.Add(listener);
-        }
-
-        /// <summary>
-        /// Unregisters an event as a listener. 
-        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
-        /// </summary>
-        /// <param name="listener">The event to unregister</param>
-        public void UnregisterListener(System.EventHandler listener)
-        {
-            valueChanged -= listener;
-
-            registeredEvents.Remove(listener);
-        }
-
-        /// <summary>
-        /// Unregisters an event as a listener. 
-        /// Any registered listeners should be unregistered before the object is destroyed or it will cause a null reference exception.
-        /// </summary>
-        /// <param name="listener">The action to unregister</param>
-        public void UnregisterListener(System.Action listener)
-        {
-            actionValueChanged -= listener;
-
-            registeredActions.Remove(listener);
-        }
-
-        /// <summary>
-        /// Called any time the Value changes. Invokes all of the listeners.
-        /// </summary>
-        protected virtual void OnValueChanged()
-        {
-            valueChanged?.Invoke(this, System.EventArgs.Empty);
-            actionValueChanged?.Invoke();
         }
         #endregion
     }
