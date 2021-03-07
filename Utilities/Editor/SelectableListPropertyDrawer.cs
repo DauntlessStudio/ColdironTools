@@ -26,6 +26,8 @@ public class SelectableListPropertyDrawer : PropertyDrawer
 
         SetIndex(listAttribute, property, result);
 
+        if(popupOptions.Length > 0) property.stringValue = popupOptions[result];
+
         if (EditorGUI.EndChangeCheck()) property.serializedObject.ApplyModifiedProperties();
 
         EditorGUI.indentLevel = indent;

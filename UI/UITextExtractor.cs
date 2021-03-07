@@ -7,9 +7,10 @@ using ColdironTools.Scriptables;
 public class UITextExtractor : MonoBehaviour
 {
     [SerializeField] private Text text;
-    [SerializeField] private MonoBehaviour source = null;
+    [SerializeField] private GameObject source = null;
 
     [SelectableList("textList", "textIndex")]
+    #pragma warning disable CS0414
     [SerializeField] private string textDisplay = "";
 
     [SerializeField, HideInInspector] private List<string> textList = new List<string>();
@@ -53,19 +54,22 @@ public class UITextExtractor : MonoBehaviour
 
         BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
-        foreach (FieldInfo field in source.GetType().GetFields(bindingFlags))
+        foreach (MonoBehaviour monoBehaviour in source.GetComponents(typeof(MonoBehaviour)))
         {
-            if (field.FieldType == typeof(StringScriptableReference))
+            foreach (FieldInfo field in monoBehaviour.GetType().GetFields(bindingFlags))
             {
-                textList.Add(field.Name);
-                useList.Add(field.GetValue(source) as StringScriptableReference);
+                if (field.FieldType == typeof(StringScriptableReference))
+                {
+                    textList.Add(field.Name);
+                    useList.Add(field.GetValue(monoBehaviour) as StringScriptableReference);
+                }
             }
         }
     }
 
     private void UpdateTextDisplay()
     {
-        if(text != null)
+        if(text != null && useList.Count > 0)
         {
             text.text = useList[textIndex];
         }
