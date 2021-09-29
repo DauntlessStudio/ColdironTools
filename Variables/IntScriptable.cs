@@ -25,7 +25,7 @@ namespace ColdironTools.Scriptables
 
         [ConditionalHide("useMinMax")]
         [Tooltip("The highest the value can be.")]
-        [SerializeField] private IntScriptableReference maxValue = new IntScriptableReference(1);
+        [SerializeField] private IntScriptableReference maxValue = new IntScriptableReference();
         #endregion
 
         #region Properties
@@ -41,7 +41,7 @@ namespace ColdironTools.Scriptables
             }
             set
             {
-                this.value = Mathf.Clamp(value, minValue, maxValue);
+                this.value = useMinMax ? Mathf.Clamp(value, minValue, maxValue) : value;
                 OnValueChanged();
             }
         }
