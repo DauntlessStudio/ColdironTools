@@ -7,6 +7,7 @@
 
 using UnityEngine;
 using UnityEditor;
+using ColdironTools.Scriptables;
 
 namespace ColdironTools.EditorExtensions
 {
@@ -87,6 +88,20 @@ namespace ColdironTools.EditorExtensions
             string propertyPath = property.propertyPath; //returns the property path of the property we want to apply the attribute to
             string conditionPath = propertyPath.Replace(property.name, condHAtt.conditionalSourceField); //changes the path to the conditionalsource property path
             SerializedProperty sourcePropertyValue = property.serializedObject.FindProperty(conditionPath);
+
+            //Handles Bool Scriptables
+            if (sourcePropertyValue.type == "BoolScriptableReference") {
+                SerializedProperty useLocal = sourcePropertyValue.serializedObject.FindProperty(conditionPath + ".useLocalValue");
+                SerializedProperty local = sourcePropertyValue.serializedObject.FindProperty(conditionPath + ".localValue");
+                SerializedProperty reference = sourcePropertyValue.serializedObject.FindProperty(conditionPath + ".referenceValue");
+                if (reference.objectReferenceValue != null && reference.objectReferenceValue.GetType() == typeof(BoolScriptable)) {
+                    BoolScriptable value = (BoolScriptable) reference.objectReferenceValue;
+                    return value.Value;
+                } else 
+                {
+                    return local.boolValue;
+                }
+            }
 
             if (sourcePropertyValue != null)
             {
