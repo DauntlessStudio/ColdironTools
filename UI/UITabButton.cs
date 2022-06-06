@@ -4,7 +4,9 @@
 // Version: 1.0, 2021
 // ------------------------------
 
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -52,15 +54,25 @@ namespace ColdironTools.UI
             public Sprite inactiveSprite;
             public Sprite activeSprite;
         }
+
+        [System.Serializable]
+        public struct TabPair
+        {
+            public GameObject tabButton;
+            public GameObject tabPanel;
+
+            public bool IsValid()
+            {
+                return !(tabButton == null || tabPanel == null);
+            }
+        }
         #endregion
 
         #region Fields
         [Header("Targets")]
-        [Tooltip("The graphics that represent the tab options.")]
-        [SerializeField] private List<Graphic> targetGraphics = new List<Graphic>();
-
-        [Tooltip("The game objects that contain the tab options")]
-        [SerializeField] private List<GameObject> targetTabObjects = new List<GameObject>();
+        [Tooltip("The game object to use as a tab button, and the corresponding element to be tabbed.")]
+        [SerializeField, NonReorderable] private List<TabPair> tabPairs = new List<TabPair>();
+        private List<GameObject> buttonsFromPairs = new List<GameObject>();
 
         [Header("Transition Data")]
         [Tooltip("The effect used to represent active and inactive tabs.")]
@@ -80,25 +92,14 @@ namespace ColdironTools.UI
         /// <summary>
         /// Sets the target graphic and object at the startingTabIndex to active and all the others to inactive.
         /// </summary>
-        private void Awake()
+        private void Start()
         {
-            for (int i = 0; i < targetTabObjects.Count; i++)
+            for (int i = 0; i < tabPairs.Count; i++)
             {
-                if (targetGraphics.Count >= i && targetGraphics[i] != null)
-                {
-                    if (i == startingTabIndex)
-                    {
-                        TargetTransition(targetGraphics[i], true);
-                        targetTabObjects[i].gameObject.SetActive(true);
-                        continue;
-                    }
-                    else
-                    {
-                        TargetTransition(targetGraphics[i], false);
-                        targetTabObjects[i].gameObject.SetActive(false);
-                    }
-                }
+                ToggleTab(tabPairs[i], startingTabIndex == i);
             }
+
+            buttonsFromPairs = tabPairs.Select(x => x.tabButton).ToList();
         }
 
         /// <summary>
@@ -107,21 +108,15 @@ namespace ColdironTools.UI
         /// <param name="eventData"></param>
         public virtual void OnPointerClick(PointerEventData eventData)
         {
-            for (int i = 0; i < targetTabObjects.Count; i++)
+            GameObject buttonObject = buttonsFromPairs.Intersect(eventData.hovered).FirstOrDefault();
+            if (!buttonObject) return;
+
+            TabPair activePair = tabPairs[buttonsFromPairs.IndexOf(buttonObject)];
+            if (activePair.IsValid())
             {
-                if (targetGraphics.Count >= i && targetGraphics[i] != null)
+                for (int i = 0; i < tabPairs.Count; i++)
                 {
-                    if (eventData.hovered.Contains(targetGraphics[i].gameObject))
-                    {
-                        TargetTransition(targetGraphics[i], true);
-                        targetTabObjects[i].gameObject.SetActive(true);
-                        continue;
-                    }
-                    else
-                    {
-                        TargetTransition(targetGraphics[i], false);
-                        targetTabObjects[i].gameObject.SetActive(false);
-                    }
+                    ToggleTab(tabPairs[i], tabPairs[i].Equals(activePair));
                 }
             }
         }
@@ -131,8 +126,13 @@ namespace ColdironTools.UI
         /// </summary>
         /// <param name="graphic">The graphic to be transitioned</param>
         /// <param name="isActive">the state to which the graphic is being transitioned</param>
-        protected virtual void TargetTransition(Graphic graphic, bool isActive)
+        protected virtual void ToggleTab(TabPair tab, bool isActive)
         {
+            Graphic graphic = tab.tabButton.GetComponent<Graphic>();
+            if (!graphic) return;
+
+            tab.tabPanel.SetActive(isActive);
+
             switch (transitionType)
             {
                 case TabTransiton.Color:

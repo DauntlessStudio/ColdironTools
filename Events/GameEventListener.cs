@@ -25,7 +25,7 @@ namespace ColdironTools.Events
     public class GameEventListener : MonoBehaviour
     {
         #region Fields
-        [SerializeField] private List<PairedEventListener>  Events = new List<PairedEventListener>();
+        [SerializeField, NonReorderable] private List<PairedEventListener>  Events = new List<PairedEventListener>();
         #endregion
 
         #region Methods

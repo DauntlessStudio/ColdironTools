@@ -8,6 +8,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 
 namespace ColdironTools.Events
@@ -34,6 +35,22 @@ namespace ColdironTools.Events
                 eventListeners[i].OnEventRaised(this);
 
             eventActions?.Invoke();
+        }
+
+        /// <summary>
+        /// Calls all of the registered Listeners after a delay.
+        /// </summary>
+        /// <param name="delay">The delay in seconds.</param>
+        public virtual void RaiseWithDelay(float delay)
+        {
+            if (!Application.isPlaying)
+            {
+                Debug.LogError("Can not run coroutine outside of play mode.");
+                return;
+            }
+
+            GameEventCoworker coworker = new GameObject("CoWorker_" + name).AddComponent<GameEventCoworker>();
+            coworker.StartWork(delay, this);
         }
 
         /// <summary>
@@ -74,5 +91,34 @@ namespace ColdironTools.Events
             eventActions -= action;
         }
         #endregion
+    }
+
+    /// <summary>
+    /// A MonoBehavior helper to GameEvents allowing delayed events.
+    /// </summary>
+    public class GameEventCoworker : MonoBehaviour
+    {
+        private float delay;
+        private GameEvent queuedEvent;
+
+        /// <summary>
+        /// Triggers the Coworker to start it's task.
+        /// </summary>
+        /// <param name="delay">The time in seconds before the GameEvent is raised.</param>
+        /// <param name="queuedEvent">The Event that will be raised.</param>
+        public void StartWork(float delay, GameEvent queuedEvent)
+        {
+            this.delay = delay;
+            this.queuedEvent = queuedEvent;
+            StartCoroutine("Worker");
+        }
+
+        private IEnumerator Worker()
+        {
+
+            yield return new WaitForSeconds(delay);
+            queuedEvent.Raise();
+            Destroy(gameObject);
+        }
     }
 }

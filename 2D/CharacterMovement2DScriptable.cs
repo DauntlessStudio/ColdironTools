@@ -14,7 +14,7 @@ namespace ColdironTools.Gameplay2D
     /// <summary>
     /// A Component that handles physics and logic for how a 2D platformer character can move.
     /// </summary>
-    [RequireComponent(typeof(Rigidbody2D), typeof(CapsuleCollider2D), typeof(SpriteRenderer))]
+    [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D), typeof(SpriteRenderer))]
     public class CharacterMovement2DScriptable : MonoBehaviour
     {
         #region ExposedFields
@@ -28,6 +28,9 @@ namespace ColdironTools.Gameplay2D
         
         [Tooltip("The layers considered ground.")]
         [SerializeField] private LayerMask m_GroundLayers;
+
+        [Tooltip("The layers that the character can travel through from beneath.")]
+        [SerializeField] private LayerMask m_OneWayLayers;
         
         [Tooltip("When walking down slopes, how much the character snaps to follow the slope.")]
         [SerializeField] private FloatScriptableReference m_SlopeGroundSnap = new FloatScriptableReference(0.5f);
@@ -60,6 +63,8 @@ namespace ColdironTools.Gameplay2D
 
         [Tooltip("A Game Event run when the character lands.")]
         [SerializeField] public GameEvent m_OnLand;
+
+        [Header("Wall Jump")]
         
         [Tooltip("Can the character wall jump?")]
         [SerializeField] private BoolScriptableReference m_CanWallJump = new BoolScriptableReference(false);
@@ -103,14 +108,20 @@ namespace ColdironTools.Gameplay2D
         [Tooltip("Can the dash be performed while crouching?")]
         [SerializeField, ConditionalHide("m_CanDash")] private BoolScriptableReference m_CanCrouchDash = new BoolScriptableReference(true);
 
-        [Tooltip("The force of the dash.")]
+        [Tooltip("The distance the dash should cover during the dash duration.")]
         [SerializeField, ConditionalHide("m_CanDash")] private FloatScriptableReference m_DashDistance = new FloatScriptableReference(60.0f);
 
         [Tooltip("The time it takes for a dash to cooldown.")]
         [SerializeField, ConditionalHide("m_CanDash")] private FloatScriptableReference m_DashCooldown = new FloatScriptableReference(1.0f);
 
+        [Tooltip("The duration of the dash.")]
+        [SerializeField, ConditionalHide("m_CanDash")] private FloatScriptableReference m_DashDuration = new FloatScriptableReference(1.0f);
+
         [Tooltip("A Game Event run when the character dashes.")]
         [SerializeField, ConditionalHide("m_CanDash")] public GameEvent m_OnDash;
+
+        [Tooltip("A Game Event run when the character dash ends.")]
+        [SerializeField, ConditionalHide("m_CanDash")] public GameEvent m_OnEndDash;
 
         [Header("Crouching")]
         
@@ -146,19 +157,23 @@ namespace ColdironTools.Gameplay2D
         private float m_JumpCooldownStartTime = 0.0f;
         private float m_RightMovementCooldownStartTime = 0.0f;
         private float m_LeftMovementCooldownStartTime = 0.0f;
+        private float m_SpriteFlipCooldownEndTime = 0.0f;
         private bool m_IsSprinting = false;
         private float m_DashCooldownStartTime = 0.0f;
-        private bool m_HasDashed = false;
+        private float m_DashDurationStartTime = 0.0f;
+        private float m_DashLerpTime = 0.0f;
+        private bool m_IsDashing = false;
+        private Vector2 m_DashDestination = Vector2.zero;
+        private Vector2 m_DashOrigin = Vector2.zero;
         private bool m_IsCrouching = false;
         private float m_CapsuleOriginalHeight = 0.0f;
         private float m_CapsuleOriginalYOffset = 0.0f;
         private PhysicsMaterial2D m_NoFriction;
-        private PhysicsMaterial2D m_WallFriction;
         private PhysicsMaterial2D m_HighFriction;
         private Vector2 m_FrameVector;
         private Vector2 m_EmptyVector = Vector2.zero;
         private Rigidbody2D m_Rigidbody;
-        private CapsuleCollider2D m_Collider;
+        private BoxCollider2D m_Collider;
         private SpriteRenderer m_SpriteRenderer;
         #endregion
 
@@ -203,6 +218,18 @@ namespace ColdironTools.Gameplay2D
         }
 
         /// <summary>
+        /// The Bottom Front of the Capsule Collider Bounds, based on the direction the character is not facing.
+        /// </summary>
+        private Vector2 ColliderBackwardFloor
+        {
+            get
+            {
+                float l_BoundsFront = !m_IsFacingRight ? m_Collider.bounds.center.x + m_Collider.bounds.extents.x : m_Collider.bounds.center.x - m_Collider.bounds.extents.x;
+                return new Vector2(l_BoundsFront, m_Collider.bounds.center.y - m_Collider.bounds.extents.y);
+            }
+        }
+
+        /// <summary>
         /// Has the Jump Cooldown Time elapsed since the Character Landed?
         /// </summary>
         private bool IsJumpCooledDown
@@ -232,6 +259,17 @@ namespace ColdironTools.Gameplay2D
             get
             {
                 return Time.time >= m_LeftMovementCooldownStartTime + m_WallJumpMovementCooldown;
+            }
+        }
+
+        /// <summary>
+        /// Has the Character's Sprite flip restriction cooled down?
+        /// </summary>
+        private bool IsSpriteFlipCooledDown
+        {
+            get
+            {
+                return Time.time >= m_SpriteFlipCooldownEndTime;
             }
         }
 
@@ -305,6 +343,14 @@ namespace ColdironTools.Gameplay2D
                 return m_IsCrouching;
             }
         }
+
+        public bool IsFacingRight
+        {
+            get
+            {
+                return m_IsFacingRight;
+            }
+        }
         #endregion
 
         #region GetReferences
@@ -314,7 +360,7 @@ namespace ColdironTools.Gameplay2D
         }
 
         /// <summary>
-        /// Assigns the Rigidbody2D, CapsuleCollider2D, and SpriteRender, or creates new ones if they are missing.
+        /// Assigns the Rigidbody2D, BoxCollider2D, and SpriteRender, or creates new ones if they are missing.
         /// </summary>
         private void AssignReferences()
         {
@@ -326,8 +372,8 @@ namespace ColdironTools.Gameplay2D
 
             if (m_Collider == null)
             {
-                CapsuleCollider2D l_Collider = GetComponent<CapsuleCollider2D>();
-                m_Collider = l_Collider == null ? new CapsuleCollider2D() : l_Collider;
+                BoxCollider2D l_Collider = GetComponent<BoxCollider2D>();
+                m_Collider = l_Collider == null ? new BoxCollider2D() : l_Collider;
             }
 
             if (m_SpriteRenderer == null)
@@ -354,6 +400,7 @@ namespace ColdironTools.Gameplay2D
 
             //Assign Game Events
             if (!m_OnCrouch) m_OnCrouch = ScriptableObject.CreateInstance<GameEvent>();
+            if (!m_OnUncrouch) m_OnUncrouch = ScriptableObject.CreateInstance<GameEvent>();
             if (!m_OnJump) m_OnJump = ScriptableObject.CreateInstance<GameEvent>();
             if (!m_OnAirJump) m_OnAirJump = ScriptableObject.CreateInstance<GameEvent>();
             if (!m_OnLand) m_OnLand = ScriptableObject.CreateInstance<GameEvent>();
@@ -361,10 +408,16 @@ namespace ColdironTools.Gameplay2D
             if (!m_OnSprintStart) m_OnSprintStart = ScriptableObject.CreateInstance<GameEvent>();
             if (!m_OnSprintStop) m_OnSprintStop = ScriptableObject.CreateInstance<GameEvent>();
             if (!m_OnDash) m_OnDash = ScriptableObject.CreateInstance<GameEvent>();
+            if (!m_OnEndDash) m_OnEndDash = ScriptableObject.CreateInstance<GameEvent>();
         }
 
         private void FixedUpdate()
         {
+            if (m_IsDashing)
+            {
+                PerformDash();
+                return;
+            }
             ApplyMovement();
             m_IsGrounded = IsGroundedCheck();
             if (m_IsJumpQueued) PerformJump();
@@ -388,6 +441,15 @@ namespace ColdironTools.Gameplay2D
             bool l_CantWalkOffLedge = !m_CanWalkOffLedgesWhileCrouched && m_IsCrouching && !LedgeDetect();
             if (l_CantWalkOffLedge) return;
             m_FrameVector.x += l_movement * MovementSpeedModified;
+        }
+
+        /// <summary>
+        /// Prevents the character sprite from flipping for a period of time. The character can still move.
+        /// </summary>
+        /// <param name="l_cooldown">The time in seconds before the character can flip again</param>
+        public void SetSpriteFlipCooldown(float l_cooldown)
+        {
+            m_SpriteFlipCooldownEndTime = Time.time + l_cooldown;
         }
 
         /// <summary>
@@ -441,7 +503,7 @@ namespace ColdironTools.Gameplay2D
         /// <param name="l_movement">The movement direction.</param>
         private void SetFacingDirection(float l_movement)
         {
-            if (l_movement == 0) return;
+            if (l_movement == 0 || !IsSpriteFlipCooledDown) return;
             m_IsFacingRight = l_movement < 0 ? false : true;
             m_SpriteRenderer.flipX = !m_IsFacingRight;
         }
@@ -490,8 +552,10 @@ namespace ColdironTools.Gameplay2D
                 return false;
             }
             bool l_WasGrounded = m_IsGrounded;
+            bool l_GroundBelow = Physics2D.Raycast(ColliderForwardFloor, Vector2.down, c_GroundedRadius, m_GroundLayers) || Physics2D.Raycast(ColliderCenterFloor, Vector2.down, c_GroundedRadius, m_GroundLayers) || Physics2D.Raycast(ColliderBackwardFloor, Vector2.down, c_GroundedRadius, m_GroundLayers);
+            bool l_OneWayBelow = m_Rigidbody.velocity.y <= 0 && (Physics2D.Raycast(ColliderForwardFloor, Vector2.down, c_GroundedRadius, m_OneWayLayers) || Physics2D.Raycast(ColliderCenterFloor, Vector2.down, c_GroundedRadius, m_OneWayLayers) || Physics2D.Raycast(ColliderBackwardFloor, Vector2.down, c_GroundedRadius, m_OneWayLayers));
 
-            if (Physics2D.OverlapCircle(ColliderCenterFloor, c_GroundedRadius, m_GroundLayers))
+            if (l_GroundBelow || l_OneWayBelow)
             {
                 if (!l_WasGrounded)
                 {
@@ -499,10 +563,11 @@ namespace ColdironTools.Gameplay2D
                     m_JumpsRemaining = m_InAirJumpCount;
                     m_Rigidbody.angularVelocity = 0;
                     m_Rigidbody.velocity = new Vector2(m_Rigidbody.velocity.x, 0.0f);
-                    if (m_HasDashed)
+                    SetFriction(0.0f);
+                    if (m_IsDashing)
                     {
                         m_DashCooldownStartTime = Time.time;
-                        m_HasDashed = false;
+                        m_IsDashing = false;
                     }
                     m_OnLand?.Raise();
                 }
@@ -664,18 +729,35 @@ namespace ColdironTools.Gameplay2D
 
         #region Dashing
         public void StartDash() {
-            if (m_CanDash && !m_HasDashed && Time.time > m_DashCooldownStartTime + m_DashCooldown && (m_CanAirDash || m_IsGrounded) && (!IsCrouching || m_CanCrouchDash)) {
-                PerformDash();
+            if (m_CanDash && !m_IsDashing && Time.time > m_DashCooldownStartTime + m_DashCooldown && (m_CanAirDash || m_IsGrounded) && (!IsCrouching || m_CanCrouchDash)) {
+                float l_Distance = m_IsFacingRight ? m_DashDistance : -m_DashDistance;
+                m_DashDestination = new Vector2(m_Rigidbody.position.x + l_Distance, m_Rigidbody.position.y);
+                m_DashOrigin = m_Rigidbody.position;
+                m_DashDurationStartTime = Time.time;
+                m_DashLerpTime = 0.0f;
+                m_IsDashing = true;
+                m_OnDash.Raise();
             }
         }
 
         private void PerformDash() {
-            float l_Distance = m_IsFacingRight ? m_DashDistance : -m_DashDistance;
-            m_Rigidbody.velocity = Vector2.zero;
-            m_Rigidbody.angularVelocity = 0.0f;
-            m_Rigidbody.AddForce(new Vector2(l_Distance * 10.0f, 100.0f));
             m_IsGrounded = false;
-            m_HasDashed = true;
+            m_Rigidbody.velocity = Vector2.zero;
+            m_Rigidbody.angularDrag = 0.0f;
+            m_DashLerpTime += Time.fixedDeltaTime / m_DashDuration;
+            m_Rigidbody.MovePosition(Vector2.Lerp(m_DashOrigin, m_DashDestination, m_DashLerpTime));
+            if (Time.time > m_DashDuration + m_DashDurationStartTime)
+            {
+                EndDash();
+            }
+        }
+
+        private void EndDash()
+        {
+            m_DashCooldownStartTime = Time.time;
+            m_IsDashing = false;
+            m_FrameVector = Vector2.zero;
+            m_OnEndDash.Raise();
         }
         #endregion
 

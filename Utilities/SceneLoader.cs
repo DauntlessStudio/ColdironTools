@@ -21,6 +21,9 @@ namespace ColdironTools.Utilities
 
         [Tooltip("The game event that will load the previous scene when raised.")]
         [SerializeField] private GameEvent loadPreviousScene = null;
+
+        [Tooltip("The game event that will reload the current scene when raised.")]
+        [SerializeField] private GameEvent reloadCurrentScene = null;
         #endregion
 
         #region Methods
@@ -30,6 +33,7 @@ namespace ColdironTools.Utilities
         private void Awake()
         {
             loadNextScene?.RegisterAction(LoadNextScene);
+            reloadCurrentScene?.RegisterAction(ReloadCurrentScene);
             loadPreviousScene?.RegisterAction(LoadPreviousScene);
         }
 
@@ -39,6 +43,7 @@ namespace ColdironTools.Utilities
         private void OnDestroy()
         {
             loadNextScene?.UnregisterAction(LoadNextScene);
+            reloadCurrentScene?.UnregisterAction(ReloadCurrentScene);
             loadPreviousScene?.UnregisterAction(LoadPreviousScene);
         }
 
@@ -69,6 +74,18 @@ namespace ColdironTools.Utilities
             if (nextScene <= SceneManager.sceneCountInBuildSettings)
             {
                 SceneManager.LoadScene(nextScene);
+            }
+        }
+
+        /// <summary>
+        /// Loads next scene in build index if it exists.
+        /// </summary>
+        public static void ReloadCurrentScene()
+        {
+            int thisScene = SceneManager.GetActiveScene().buildIndex;
+            if (thisScene <= SceneManager.sceneCountInBuildSettings)
+            {
+                SceneManager.LoadScene(thisScene);
             }
         }
 
