@@ -43,48 +43,30 @@ namespace ColdironTools.Utilities
         /// </summary>
         public static void ResetScriptables()
         {
-            foreach (IntScriptable item in GetAllInstances<IntScriptable>())
+            foreach (IntScriptable item in ScriptableInstanceGetter.GetAllInstances<IntScriptable>())
             {
                 item.Reset();
             }
 
-            foreach (FloatScriptable item in GetAllInstances<FloatScriptable>())
+            foreach (FloatScriptable item in ScriptableInstanceGetter.GetAllInstances<FloatScriptable>())
             {
                 item.Reset();
             }
 
-            foreach (BoolScriptable item in GetAllInstances<BoolScriptable>())
+            foreach (BoolScriptable item in ScriptableInstanceGetter.GetAllInstances<BoolScriptable>())
             {
                 item.Reset();
             }
 
-            foreach (StringScriptable item in GetAllInstances<StringScriptable>())
+            foreach (StringScriptable item in ScriptableInstanceGetter.GetAllInstances<StringScriptable>())
             {
                 item.Reset();
             }
 
-            foreach (ColorScriptable item in GetAllInstances<ColorScriptable>())
+            foreach (ColorScriptable item in ScriptableInstanceGetter.GetAllInstances<ColorScriptable>())
             {
                 item.Reset();
             }
-        }
-
-        /// <summary>
-        /// Gets all the instances of a given scriptable object.
-        /// </summary>
-        /// <typeparam name="T">Scriptable object type</typeparam>
-        /// <returns>An array of all scriptable objects of type T.</returns>
-        private static T[] GetAllInstances<T>() where T : ScriptableObject
-        {
-            string[] guids = AssetDatabase.FindAssets("t:" + typeof(T).Name);
-            T[] a = new T[guids.Length];
-            for (int i = 0; i < guids.Length; i++)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
-                a[i] = AssetDatabase.LoadAssetAtPath<T>(path);
-            }
-
-            return a;
         }
         #endregion
     }
@@ -99,6 +81,26 @@ namespace ColdironTools.Utilities
         public void OnPreprocessBuild(UnityEditor.Build.Reporting.BuildReport report)
         {
             ScriptableResetter.ResetScriptables();
+        }
+    }
+    public static class ScriptableInstanceGetter
+    {
+        /// <summary>
+        /// Gets all the instances of a given scriptable object.
+        /// </summary>
+        /// <typeparam name="T">Scriptable object type</typeparam>
+        /// <returns>An array of all scriptable objects of type T.</returns>
+        public static T[] GetAllInstances<T>() where T : ScriptableObject
+        {
+            string[] guids = AssetDatabase.FindAssets("t:" + typeof(T).Name);
+            T[] a = new T[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                a[i] = AssetDatabase.LoadAssetAtPath<T>(path);
+            }
+
+            return a;
         }
     }
 }

@@ -21,6 +21,9 @@ namespace ColdironTools.Scriptables
         [Tooltip("Should the value reset when exiting play mode?")]
         [SerializeField] protected bool shouldReset = true;
 
+        [Tooltip("Should this be automatically saved using the SaveSystem?")]
+        [SerializeField] protected bool shouldSave = false;
+
         [Tooltip("Current value of the scriptable.")]
         [SerializeField] protected T value;
 
@@ -30,6 +33,11 @@ namespace ColdironTools.Scriptables
         private event System.Action actionValueChanged;
         private List<System.EventHandler> registeredEvents = new List<System.EventHandler>();
         private List<System.Action> registeredActions = new List<System.Action>();
+
+        /// <summary>
+        /// Should be used exclusively by SaveJsonObject.
+        /// </summary>
+        public event System.Action<string, object> saveValueChange;
         #endregion
 
         #region Properties
@@ -54,6 +62,11 @@ namespace ColdironTools.Scriptables
         /// Public accessor for the description. Exists mainly to remove the unused variable warning in the editor.
         /// </summary>
         public string DesignerDescription { get => designerDescription; }
+
+        /// <summary>
+        /// Public accessor for the shouldSave value. Tells the Save System to listen to this variable.
+        /// </summary>
+        public bool ShouldSave { get => shouldSave; }
         #endregion
 
         #region Methods
@@ -163,6 +176,7 @@ namespace ColdironTools.Scriptables
         {
             valueChanged?.Invoke(this, System.EventArgs.Empty);
             actionValueChanged?.Invoke();
+            saveValueChange?.Invoke(name, Value);
         }
         #endregion
     }

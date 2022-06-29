@@ -236,12 +236,13 @@ namespace ColdironTools.Events
         #region Fields
         [SerializeField, Tooltip("Whether all values must be true for it to succeed, or just one")] private bool shouldAllBeTrue = true;
         [SerializeField] private bool isAutomatic = true;
+        [SerializeField] private bool callOnEnable = false;
 
         [Header("Conditions")]
-        [SerializeField] private List<ScriptableBoolPairing> boolPairings = new List<ScriptableBoolPairing>();
-        [SerializeField] private List<ScriptableStringPairing> stringPairings = new List<ScriptableStringPairing>();
-        [SerializeField] private List<ScriptableFloatPairing> floatPairings = new List<ScriptableFloatPairing>();
-        [SerializeField] private List<ScriptableIntPairing> intPairings = new List<ScriptableIntPairing>();
+        [SerializeField, NonReorderable] private List<ScriptableBoolPairing> boolPairings = new List<ScriptableBoolPairing>();
+        [SerializeField, NonReorderable] private List<ScriptableStringPairing> stringPairings = new List<ScriptableStringPairing>();
+        [SerializeField, NonReorderable] private List<ScriptableFloatPairing> floatPairings = new List<ScriptableFloatPairing>();
+        [SerializeField, NonReorderable] private List<ScriptableIntPairing> intPairings = new List<ScriptableIntPairing>();
 
         [Header("")]
         [SerializeField] private UnityEvent SuccessEvent = new UnityEvent();
@@ -298,7 +299,7 @@ namespace ColdironTools.Events
         /// </summary>
         private void OnEnable()
         {
-            if(isAutomatic) Invoke();
+            if(isAutomatic || callOnEnable) Invoke();
         }
 
         /// <summary>
