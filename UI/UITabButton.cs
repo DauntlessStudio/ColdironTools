@@ -79,10 +79,10 @@ namespace ColdironTools.UI
         [SerializeField] private TabTransiton transitionType = TabTransiton.Color;
 
         [Tooltip("The active and inactive colors for the transition graphics.")]
-        [SerializeField, ConditionalHide("transitionType", 1)] private TransitionColors transitionColors = new TransitionColors(Color.white, Color.grey);
+        [SerializeField, ConditionalHide("transitionType", 0)] private TransitionColors transitionColors = new TransitionColors(Color.white, Color.grey);
 
         [Tooltip("The active and inactive sprites for the transition graphics.")]
-        [SerializeField, ConditionalHide("transitionType", 0)] private TransitionSprites transitionSprites = new TransitionSprites();
+        [SerializeField, ConditionalHide("transitionType", 1)] private TransitionSprites transitionSprites = new TransitionSprites();
 
         [Tooltip("The index of the target object that should be active when the game starts.")]
         [SerializeField] private int startingTabIndex = 0;

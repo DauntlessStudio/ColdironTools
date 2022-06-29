@@ -105,7 +105,7 @@ namespace ColdironTools.EditorExtensions
 
             if (sourcePropertyValue != null)
             {
-                enabled = condHAtt.shouldUseEnum ? condHAtt.enumVal != sourcePropertyValue.intValue : sourcePropertyValue.boolValue != condHAtt.hideValue;
+                enabled = condHAtt.shouldUseEnum ? condHAtt.enumVal == sourcePropertyValue.intValue : sourcePropertyValue.boolValue != condHAtt.hideValue;
             }
             else
             {
